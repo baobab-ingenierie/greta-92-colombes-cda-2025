@@ -2,7 +2,7 @@ Vagrant.configure("2") do |config|
   config.vm.box = "debian/bookworm64"
   config.vm.hostname = "bookworm"
   config.vm.network "forwarded_port", guest: 80, host: 8080, host_ip: "127.0.0.1"
-  config.vm.network "private_network", ip: "192.168.1.1"
+  config.vm.network "private_network", ip: "192.168.11.11"
   config.vm.synced_folder "./scripts", "/home/share"
   config.vm.provision "shell", inline: <<-SHELL
 	apt-get update
