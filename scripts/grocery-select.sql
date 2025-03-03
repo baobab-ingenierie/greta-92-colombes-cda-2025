@@ -490,14 +490,39 @@ ORDER BY moyenne DESC
 -- #######################################################
 
 -- Afficher le prix moyen des produits, par pays et par
--- fournisseur, trié dans l'ordre décroissant des moyennes
--- Bonus : uniquement les 3 premières
+-- fournisseur. Trier dans l'ordre décroissant des moyennes
+-- Bonus : uniquement les 3 premiers
+SELECT f.code_four,
+		f.pays,
+        p.prix
+FROM grocery.produit p
+	INNER JOIN grocery.fournisseur f
+		ON f.code_four = p.code_four -- Jointure !
+;
+--
+SELECT f.code_four,
+		f.pays,
+        AVG(p.prix) AS prix_moyen
+FROM grocery.produit p
+	INNER JOIN grocery.fournisseur f
+		ON f.code_four = p.code_four
+GROUP BY f.code_four,
+		f.pays
+;
+--
+SELECT CONCAT(f.code_four,' - ', f.nom) AS fournisseur,
+		f.pays,
+        CONCAT(FORMAT(AVG(p.prix), 2, 'fr_FR'), '€') AS prix_moyen
+FROM grocery.produit p
+	INNER JOIN grocery.fournisseur f
+		ON f.code_four = p.code_four
+GROUP BY f.code_four,
+		f.pays
+ORDER BY prix_moyen DESC
+;
 
 -- Afficher le nom du client, le no de commande ainsi que le
--- montant total de la commande, trié dans l'ordre croissant 
+-- montant total de la commande. Trier dans l'ordre croissant 
 -- des montants
 
 -- Dans quel pays se trouve le meilleur client ?
-
-
-
