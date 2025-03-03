@@ -404,3 +404,100 @@ UPDATE greta.liste_prof
 SET prenom = 'Kevin'
 WHERE prenom = 'Lesly'
 ;
+
+-- Fonctions numériques
+SELECT ROUND(12345.67),
+		ROUND(12345.67, 1),
+		ROUND(12345.67, -2),
+        FLOOR(1.00000000000001),
+        FLOOR(1.99999999999999),
+        CEIL(1.00000000000001),
+        CEIL(1.99999999999999),
+        TRUNCATE(1.99999999999999, 2)
+;
+
+-- Fonctions texte
+SELECT SUBSTRING('Sadaf', 2, 3),
+		CONCAT('A bas', ' les ', 'profs'),
+        LENGTH('Hello World!'),
+        TRIM('      Je hais les profs !     '),
+        LOCATE('ces', 'Qu''ils sont méchants, ces profs !'),
+        REPLACE('Qu''ils sont méchants, ces profs !', 'méchant', 'con')
+;
+
+-- Fonctions date et heure
+-- https://mariadb.com/kb/en/date_format/
+SELECT date_format(curdate(), '%W %e %M %Y')
+;
+
+-- Structures de contrôle
+SELECT e.prenom,
+		s.id_mod,
+        s.note,
+        IF(s.note > 10, 'Bravo !', 'Dommage !') AS avis,
+        CASE
+			WHEN s.note < 8 THEN 'NA'
+			WHEN s.note < 13 THEN 'ECA'
+			ELSE 'ACQ'
+        END AS eval
+FROM greta.eleve e
+	JOIN greta.suivre s
+		ON e.id_eleve = s.id_eleve
+;
+
+-- Fonctions JSON
+SELECT json_object('prenom', prenom, 'naissance', naiss)
+FROM greta.eleve
+;
+
+-- Fonctions de transtypage
+SELECT *
+FROM greta.eleve
+-- WHERE id_eleve < '5' -- CAST implicite
+WHERE id_eleve < 'cinq' -- CAST implicite -> 0
+;
+
+-- Fonctions d'agrégation
+SELECT AVG(note) AS moyenne, 
+		MAX(note), 
+        MIN(note), 
+        SUM(note), 
+        COUNT(*) AS nb
+FROM greta.suivre
+;
+
+-- Regroupements
+SELECT e.prenom, s.note
+FROM greta.eleve e
+	LEFT OUTER JOIN greta.suivre s
+		ON e.id_eleve = s.id_eleve
+;
+--
+SELECT e.prenom, AVG(s.note) AS moyenne
+FROM greta.eleve e
+	LEFT OUTER JOIN greta.suivre s
+		ON e.id_eleve = s.id_eleve
+WHERE s.note IS NOT NULL 
+-- AND s.note >= 10
+GROUP BY e.prenom
+-- HAVING AVG(s.note) >= 10
+HAVING moyenne >= 10 -- MySQL/MariaDB seulement !!!
+ORDER BY moyenne DESC
+;
+
+-- #######################################################
+-- Challenges 3
+-- #######################################################
+
+-- Afficher le prix moyen des produits, par pays et par
+-- fournisseur, trié dans l'ordre décroissant des moyennes
+-- Bonus : uniquement les 3 premières
+
+-- Afficher le nom du client, le no de commande ainsi que le
+-- montant total de la commande, trié dans l'ordre croissant 
+-- des montants
+
+-- Dans quel pays se trouve le meilleur client ?
+
+
+
