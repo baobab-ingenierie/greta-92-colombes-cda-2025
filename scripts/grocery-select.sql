@@ -262,3 +262,145 @@ FROM grocery.client c
 -- WHERE (o.date_comm = '2025-02-24') OR (o.date_comm = '2025-02-26')
 WHERE (o.date_comm IN ('2025-02-24','2025-02-26'))
 ;
+
+-- Rappel : Liste de tous les élèves avec leurs notes
+-- pour chaque évaluation et le nom du prof associé
+-- au module
+SELECT e.prenom,
+		FLOOR(DATEDIFF(CURRENT_DATE(), e.naiss)/365.25) AS age,
+        s.date_eval,
+        s.note AS note_sur_20,
+        m.id_mod,
+        m.titre,
+        p.prenom
+FROM eleve e
+	INNER JOIN suivre s
+		ON e.id_eleve = s.id_eleve
+	INNER JOIN module m
+		ON m.id_mod = s.id_mod
+	INNER JOIN prof p
+		ON p.id_prof = m.code_prof
+-- ORDER BY e.prenom, s.note DESC -- Très gourmand !
+ORDER BY e.prenom, note_sur_20 DESC
+-- ORDER BY 1, 4 DESC
+;
+
+-- Opérateurs ensemblistes
+
+-- UNION
+SELECT prenom, naiss, email, NULL as mobile
+FROM greta.eleve
+UNION
+SELECT prenom, naiss, NULL as email, mobile
+FROM greta.prof
+;
+
+-- INTERSECTION
+SELECT pays
+FROM grocery.fournisseur
+INTERSECT
+SELECT pays
+FROM grocery.client
+;
+-- Alternative
+SELECT DISTINCT f.pays
+FROM grocery.fournisseur f
+WHERE EXISTS (SELECT c.pays
+			FROM grocery.client c
+            WHERE c.pays = f.pays)
+;
+
+-- EXCEPTION
+SELECT pays
+FROM grocery.fournisseur
+EXCEPT
+SELECT pays
+FROM grocery.client
+;
+-- Alternative
+SELECT DISTINCT c.pays
+FROM grocery.client c
+WHERE NOT EXISTS (SELECT f.pays
+					FROM grocery.fournisseur f
+                    WHERE f.pays = c.pays)
+;
+--
+SELECT DISTINCT f.pays
+FROM grocery.fournisseur f
+WHERE NOT EXISTS (SELECT c.pays
+					FROM grocery.client c
+                    WHERE f.pays = c.pays)
+;
+
+-- Gestion des vues
+SELECT *
+FROM greta.eleve
+;
+--
+SELECT prenom, 
+		FLOOR(DATEDIFF(CURRENT_DATE(),naiss)/365.25) AS age,
+        LOWER(email) AS courriel
+FROM greta.eleve
+;
+--
+CREATE OR REPLACE VIEW greta.liste_eleve AS
+	SELECT prenom, 
+			FLOOR(DATEDIFF(CURRENT_DATE(),naiss)/365.25) AS age,
+			LOWER(email) AS courriel
+	FROM greta.eleve
+;
+-- Vue protégée ???
+SELECT *
+FROM liste_eleve
+;
+--
+UPDATE greta.eleve
+SET email = LOWER(email)
+WHERE 1 = 1 -- Toujours VRAI
+;
+--
+UPDATE greta.liste_eleve
+SET courriel = NULL
+WHERE 1 = 1
+;
+--
+UPDATE greta.liste_eleve
+SET prenom = UPPER(prenom)
+WHERE 1 = 1
+;
+
+-- Une autre vue !
+SELECT prenom,
+		m.id_mod,
+        m.titre,
+        p.mobile
+FROM greta.prof p
+	LEFT OUTER JOIN greta.module m
+		ON p.id_prof = m.code_prof
+;
+-- 
+CREATE OR REPLACE VIEW greta.liste_prof AS
+-- SELECT prenom,
+-- SELECT REPLACE(p.prenom, '', '') AS prenom,
+	SELECT SUBSTR(p.prenom, 1, 50) AS prenom,
+			m.id_mod,
+			m.titre,
+			p.mobile
+	FROM greta.prof p
+		LEFT OUTER JOIN greta.module m
+			ON p.id_prof = m.code_prof
+;
+-- Lecture
+SELECT *
+FROM greta.liste_prof
+;
+-- MàJ
+UPDATE greta.liste_prof
+SET mobile = '0607080910'
+WHERE prenom = 'Lesly'
+;
+--
+UPDATE greta.liste_prof
+SET prenom = 'Kevin'
+WHERE prenom = 'Lesly'
+;
