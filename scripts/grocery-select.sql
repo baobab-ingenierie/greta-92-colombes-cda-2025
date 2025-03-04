@@ -554,3 +554,78 @@ ORDER BY montant
 ;
 
 -- Dans quel pays se trouve le meilleur client ?
+SELECT cl.nom,
+		cl.pays,
+        SUM(cn.qte * cn.prix) AS montant
+FROM grocery.client cl
+	INNER JOIN grocery.passer p
+		ON cl.id_cli = p.id_cli
+	INNER JOIN grocery.commande co
+		ON co.no_comm = p.no_comm
+	INNER JOIN grocery.concerner cn
+		ON co.no_comm = cn.no_comm
+GROUP BY cl.nom,
+		cl.pays
+ORDER BY montant DESC
+LIMIT 3 -- 1
+;
+
+-- Fonctions de fenêtrage
+-- Pays qui génère le plus de commandes
+
+-- Avec regroupement
+SELECT cl.pays,
+		SUM(cn.qte * cn.prix) AS mt
+FROM grocery.concerner cn
+	INNER JOIN grocery.commande co
+		ON co.no_comm = cn.no_comm
+	INNER JOIN grocery.passer p
+		ON co.no_comm = p.no_comm
+	INNER JOIN grocery.client cl
+		ON cl.id_cli = p.id_cli
+GROUP BY cl.pays
+ORDER BY mt DESC
+LIMIT 3
+;
+
+-- Avec fonctions de fenêtrage
+SELECT cl.id_cli,
+		cl.nom,
+        cl.pays,
+        SUM(cn.qte * cn.prix) OVER(PARTITION BY cl.pays) AS mt
+FROM grocery.concerner cn
+	INNER JOIN grocery.commande co
+		ON co.no_comm = cn.no_comm
+	INNER JOIN grocery.passer p
+		ON co.no_comm = p.no_comm
+	INNER JOIN grocery.client cl
+		ON cl.id_cli = p.id_cli
+;
+--
+SELECT DISTINCT cl.pays,
+        SUM(cn.qte * cn.prix) OVER(PARTITION BY cl.pays) AS mt
+FROM grocery.concerner cn
+	INNER JOIN grocery.commande co
+		ON co.no_comm = cn.no_comm
+	INNER JOIN grocery.passer p
+		ON co.no_comm = p.no_comm
+	INNER JOIN grocery.client cl
+		ON cl.id_cli = p.id_cli
+;
+--
+SELECT cl.id_cli,
+		cl.nom,
+        cl.pays,
+        SUM(cn.qte * cn.prix) OVER(PARTITION BY cl.pays) AS montant,
+        cn.qte * cn.prix mt_unitaire,
+        RANK() OVER(PARTITION BY cl.pays ORDER BY cn.qte * cn.prix DESC) AS classement,
+        PERCENT_RANK() OVER(PARTITION BY cl.pays ORDER BY cn.qte * cn.prix DESC) AS percent
+FROM grocery.concerner cn
+	INNER JOIN grocery.commande co
+		ON co.no_comm = cn.no_comm
+	INNER JOIN grocery.passer p
+		ON co.no_comm = p.no_comm
+	INNER JOIN grocery.client cl
+		ON cl.id_cli = p.id_cli
+-- WHERE cl.pays = 'france'
+;
