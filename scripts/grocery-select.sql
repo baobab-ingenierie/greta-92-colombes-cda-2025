@@ -519,10 +519,38 @@ FROM grocery.produit p
 GROUP BY f.code_four,
 		f.pays
 ORDER BY prix_moyen DESC
+LIMIT 3 -- 5, 8
 ;
 
 -- Afficher le nom du client, le no de commande ainsi que le
 -- montant total de la commande. Trier dans l'ordre croissant 
 -- des montants
+SELECT cl.nom,
+		co.no_comm,
+        qte,
+        prix
+FROM grocery.client cl
+	INNER JOIN grocery.passer p
+		ON cl.id_cli = p.id_cli
+	INNER JOIN grocery.commande co
+		ON co.no_comm = p.no_comm
+	INNER JOIN grocery.concerner cn
+		ON co.no_comm = cn.no_comm
+;
+--
+SELECT cl.nom,
+		co.no_comm,
+        SUM(qte * prix) AS montant
+FROM grocery.client cl
+	INNER JOIN grocery.passer p
+		ON cl.id_cli = p.id_cli
+	INNER JOIN grocery.commande co
+		ON co.no_comm = p.no_comm
+	INNER JOIN grocery.concerner cn
+		ON co.no_comm = cn.no_comm
+GROUP BY cl.nom,
+		co.no_comm
+ORDER BY montant
+;
 
 -- Dans quel pays se trouve le meilleur client ?
