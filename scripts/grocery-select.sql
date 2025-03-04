@@ -629,3 +629,77 @@ FROM grocery.concerner cn
 		ON cl.id_cli = p.id_cli
 -- WHERE cl.pays = 'france'
 ;
+
+-- Résumé fonctions de fenêtrage
+
+-- Agrégats
+SELECT DISTINCT pays,
+		COUNT(id_cli) OVER(PARTITION BY pays) AS nb_cli
+FROM grocery.client
+ORDER BY nb_cli DESC
+;
+
+-- RANK()
+SELECT f.nom,
+		p.nom_prod,
+        p.prix,
+		RANK() OVER(PARTITION BY f.nom ORDER BY p.prix DESC) AS rang
+FROM grocery.fournisseur f
+	INNER JOIN grocery.produit p
+		ON f.code_four = p.code_four
+;
+
+-- PERCENT_RANK()
+-- Renvoie le rang relatif d'une valeur dans un groupe de 
+-- valeurs, sous la forme d'un pourcentage compris entre 
+-- 0.0 et 1.0
+SELECT f.nom,
+		p.nom_prod,
+        p.prix,
+		PERCENT_RANK() OVER(PARTITION BY f.nom ORDER BY p.prix DESC) AS rang
+FROM grocery.fournisseur f
+	INNER JOIN grocery.produit p
+		ON f.code_four = p.code_four
+;
+
+-- ROW_NUMBER()
+SELECT f.nom,
+		p.nom_prod,
+        p.prix,
+		ROW_NUMBER() OVER(PARTITION BY f.nom) AS row_num
+FROM grocery.fournisseur f
+	INNER JOIN grocery.produit p
+		ON f.code_four = p.code_four
+;
+
+-- NTILE()
+-- Permet de diviser un ensemble d'enregistrements en 
+-- sous-ensembles de taille approximativement égale.
+SELECT nom_prod,
+        prix,
+		NTILE(4) OVER(ORDER BY prix) AS grp
+FROM grocery.produit
+;
+
+-- LAG()/LEAD()
+-- Permet d'accéder à une valeur stockée dans une ligne 
+-- différente au-dessus de la ligne actuelle
+SELECT id_prod,
+		nom_prod,
+        prix,
+        LAG(prix, 5) OVER(ORDER BY prix) AS val_prec,
+        LEAD(prix) OVER(ORDER BY prix) AS val_suiv
+FROM grocery.produit
+;
+
+-- FIRST_VALUE()
+-- Renvoie la première valeur d'une partition ordonnée 
+-- d'un ensemble de résultats.
+SELECT co.date_comm,
+		cn.prix,
+        FIRST_VALUE(cn.prix) OVER(ORDER BY co.date_comm) AS first_price,
+        LAST_VALUE(cn.prix) OVER(ORDER BY co.date_comm) AS last_price
+FROM grocery.concerner cn
+	INNER JOIN grocery.commande co
+		ON co.no_comm = cn.no_comm
+;
