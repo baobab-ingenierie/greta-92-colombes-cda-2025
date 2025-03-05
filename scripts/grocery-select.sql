@@ -703,3 +703,197 @@ FROM grocery.concerner cn
 	INNER JOIN grocery.commande co
 		ON co.no_comm = cn.no_comm
 ;
+
+-- #######################################################
+-- Challenges 4
+-- #######################################################
+
+-- Afficher le pourcentage de ventes par pays et par
+-- fournisseur (soit agrégé, soit fenêtré).
+
+-- Fonction fenêtrée
+SELECT f.pays,
+		f.nom,
+        c.prix * c.qte AS montant
+FROM grocery.concerner c
+	INNER JOIN grocery.produit p
+		ON p.id_prod = c.id_prod
+	INNER JOIN grocery.fournisseur f
+		ON f.code_four = p.code_four
+;
+--
+SELECT f.pays,
+		f.nom,
+        SUM(c.prix * c.qte) OVER() AS total
+FROM grocery.concerner c
+	INNER JOIN grocery.produit p
+		ON p.id_prod = c.id_prod
+	INNER JOIN grocery.fournisseur f
+		ON f.code_four = p.code_four
+;
+--
+SELECT DISTINCT f.pays,
+		f.nom,
+        SUM(c.prix * c.qte) OVER(PARTITION BY f.pays, f.nom) AS montant,
+        SUM(c.prix * c.qte) OVER() AS total
+FROM grocery.concerner c
+	INNER JOIN grocery.produit p
+		ON p.id_prod = c.id_prod
+	INNER JOIN grocery.fournisseur f
+		ON f.code_four = p.code_four
+;
+--
+SELECT DISTINCT f.pays,
+		f.nom,
+        (SUM(c.prix * c.qte) OVER(PARTITION BY f.pays, f.nom) / SUM(c.prix * c.qte) OVER()) * 100 AS pourcent
+FROM grocery.concerner c
+	INNER JOIN grocery.produit p
+		ON p.id_prod = c.id_prod
+	INNER JOIN grocery.fournisseur f
+		ON f.code_four = p.code_four
+;
+--
+SELECT DISTINCT f.pays,
+		f.nom,
+        ROUND((SUM(c.prix * c.qte) OVER(PARTITION BY f.pays, f.nom) / SUM(c.prix * c.qte) OVER()) * 100, 2) AS pourcent
+FROM grocery.concerner c
+	INNER JOIN grocery.produit p
+		ON p.id_prod = c.id_prod
+	INNER JOIN grocery.fournisseur f
+		ON f.code_four = p.code_four
+WHERE f.pays IS NOT NULL
+ORDER BY pourcent DESC
+;
+
+-- Sous-requête dans le SELECT : à ne JAMAIS faire !!!
+SELECT f.nom,
+		p.nom_prod,
+		p.prix,
+        (SELECT SUM(prix) FROM grocery.produit WHERE code_four = 11) AS total, -- Sous-requête !
+		(p.prix / (SELECT SUM(prix) FROM grocery.produit WHERE code_four = 11)) * 100 AS pourcent
+FROM grocery.produit p
+	INNER JOIN grocery.fournisseur f
+		ON f.code_four = p.code_four
+WHERE f.code_four = 11
+;
+
+-- Sous-requête dans le FROM
+SELECT f.nom,
+		p.nom_prod,
+        p.prix
+FROM grocery.fournisseur f
+	INNER JOIN grocery.produit p
+		ON f.code_four = p.code_four
+;
+--
+SELECT code_four,
+		SUM(prix) AS total
+FROM grocery.produit
+GROUP BY code_four
+;
+--
+SELECT f.nom,
+		p.nom_prod,
+        (p.prix / stats.total) * 100 AS pct
+FROM grocery.fournisseur f
+	INNER JOIN grocery.produit p
+		ON f.code_four = p.code_four
+	INNER JOIN (SELECT code_four,
+						SUM(prix) AS total
+				FROM grocery.produit
+				GROUP BY code_four) stats -- Sous-requête
+		ON f.code_four = stats.code_four
+;
+
+-- Sous-requête avec WITH : CTE (Common Table Expression)
+
+-- CTE
+WITH stats AS (SELECT code_four,
+		SUM(prix) AS total
+FROM grocery.produit
+GROUP BY code_four)
+-- Requête principale
+SELECT p.code_four,
+		p.nom_prod,
+		(p.prix / s.total) * 100 AS pct
+FROM grocery.produit p
+	INNER JOIN stats s
+		ON p.code_four = s.code_four
+ORDER BY  p.code_four -- 1
+;
+
+-- Sous-requête avec WITH : CTE récursive
+
+WITH RECURSIVE nombres (n) AS (
+	SELECT 1 -- Cas de base
+	UNION ALL
+	SELECT n + 1 FROM nombres WHERE n < 5 -- Partie récursive
+)
+SELECT * 
+FROM nombres;
+
+-- Sous-requête dans le WHERE
+
+-- Liste des produits dont le prix est supérieur 
+-- au prix moyen de tous les produits
+SELECT AVG(prix) AS moyenne
+FROM grocery.produit -- 46.669410
+;
+--
+SELECT *
+FROM grocery.produit
+WHERE prix > 46.669410 -- Statique
+;
+--
+SELECT *
+FROM grocery.produit
+WHERE prix > (SELECT AVG(prix) AS moyenne 
+			FROM grocery.produit) -- Automatique
+;
+
+-- Sous-requête corrélée ou synchronisée
+
+-- Liste des produits dont le prix est supérieur 
+-- au prix moyen de tous les produits du même
+-- fournisseur
+SELECT *
+FROM grocery.produit p1
+WHERE p1.prix > (SELECT AVG(p2.prix) AS moyenne  
+				FROM grocery.produit p2
+                WHERE p1.code_four = p2.code_four) -- Synchro
+;
+
+-- Plan d'exécution : EXPLAIN
+EXPLAIN
+	WITH stats AS (SELECT code_four,
+			SUM(prix) AS total
+	FROM grocery.produit
+	GROUP BY code_four)
+	-- Requête principale
+	SELECT p.code_four,
+			p.nom_prod,
+			(p.prix / s.total) * 100 AS pct
+	FROM grocery.produit p
+		INNER JOIN stats s
+			ON p.code_four = s.code_four
+	ORDER BY  p.code_four -- 1
+;
+-- vs
+EXPLAIN
+	SELECT f.nom,
+			p.nom_prod,
+			(p.prix / stats.total) * 100 AS pct
+	FROM grocery.fournisseur f
+		INNER JOIN grocery.produit p
+			ON f.code_four = p.code_four
+		INNER JOIN (SELECT code_four,
+							SUM(prix) AS total
+					FROM grocery.produit
+					GROUP BY code_four) stats -- Sous-requête
+			ON f.code_four = stats.code_four
+;
+
+-- Création d'un index 
+CREATE INDEX idx_pdt_prix
+ON grocery.produit(prix)
+;
