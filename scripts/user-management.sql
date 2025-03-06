@@ -16,12 +16,12 @@ SELECT PASSWORD('secret')
 
 SELECT MD5('ismael'),
 		SHA1('terry'),
-        SHA2(256, 'pierre'),
+        SHA2('pierre', 256),
         SHA1(CONCAT(MD5('secret'), 'lesly.lodin@greta.fr'))
 ;
 
 -- Création d'un user admin
-DROP USER IF EXISTS ryan;
+DROP USER IF EXISTS 'ryan';
 CREATE USER 'ryan'@'%' IDENTIFIED BY 'secret';
 GRANT ALL PRIVILEGES ON *.* TO 'ryan'@'%' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
@@ -47,11 +47,11 @@ WHERE LENGTH(password) = 0
 
 -- Rôle 1 : Lire toutes les tables de toutes les 
 -- bases de données
-DROP ROLE IF EXISTS readonly;
+DROP ROLE IF EXISTS 'readonly';
 CREATE ROLE readonly;
 GRANT usage, select ON grocery.* TO readonly;
 GRANT readonly TO 'adam'@'%';
-SET DEFAULT ROLE readonly FOR 'adam'@'%';
+SET DEFAULT ROLE readonly FOR 'adam'@'%'; -- Important !
 SHOW GRANTS FOR 'adam'@'%';
 FLUSH PRIVILEGES;
 
